@@ -1,0 +1,23 @@
+{
+  "templates": [
+    {
+      "id": "bonterms-mutual-nda",
+      "name": "Bonterms Mutual NDA",
+      "version": "1.0",
+      "category": "nda",
+      "description": "A balanced Mutual Non-Disclosure Agreement for enterprise use, drafted by the Bonterms Standard Agreement Committee.",
+      "path": "bonterms-mutual-nda/Mutual-NDA.md",
+      "format": "markdown",
+      "source": {
+        "repository": "https://github.com/Bonterms/Mutual-NDA",
+        "file": "Mutual-NDA.md",
+        "commit": "1b6e3a67176d47bbb89633bd4ec2be2c32d6cacf"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "file": "bonterms-mutual-nda/LICENSE.md"
+      }
+    }
+  ]
+}
