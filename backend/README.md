@@ -1,6 +1,6 @@
 # pactForge backend
 
-FastAPI backend for pactForge. v1 foundation: health check only, no real endpoints yet.
+FastAPI backend for pactForge: a health check, and an AI chat endpoint that proxies to Claude for the Mutual NDA chat assistant.
 
 ## Commands
 
@@ -12,11 +12,14 @@ uv run pytest        # run tests
 
 Health check: `GET http://localhost:8000/health`
 
+Chat endpoint: `POST http://localhost:8000/chat/nda` — requires `ANTHROPIC_API_KEY` set in `.env` (copy `.env.example`); without it, the endpoint returns a 503.
+
 ## Structure
 
 - `app/main.py` — FastAPI app, CORS, router registration
-- `app/core/config.py` — settings (app name, CORS origins)
+- `app/core/config.py` — settings (app name, CORS origins, Anthropic API key/model)
 - `app/api/routes/` — route modules, one per resource
+- `app/services/` — business logic called by routes (e.g. `nda_chat.py` builds the system prompt/tool schema and calls the Anthropic API)
 - `tests/` — pytest tests
 
 ## Future extension points

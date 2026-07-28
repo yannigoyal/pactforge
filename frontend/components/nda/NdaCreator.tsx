@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ndaFormSchema, type NdaFormValues } from "@/lib/nda/schema";
 import { defaultNdaFormValues } from "@/lib/nda/defaultValues";
 import type { NdaBlock } from "@/lib/nda/markdown";
+import { NdaChat } from "./NdaChat";
 import { NdaForm } from "./NdaForm";
 import { NdaPreview } from "./NdaPreview";
 
@@ -21,7 +22,8 @@ export function NdaCreator({ bodyBlocks }: NdaCreatorProps) {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    setValue,
+    formState: { errors, isValid },
   } = useForm<NdaFormValues>({
     resolver: zodResolver(ndaFormSchema),
     defaultValues: defaultNdaFormValues,
@@ -56,7 +58,10 @@ export function NdaCreator({ bodyBlocks }: NdaCreatorProps) {
 
   return (
     <form onSubmit={handleSubmit(onDownload)} className="grid gap-8 lg:grid-cols-2">
-      <NdaForm register={register} errors={errors} />
+      <div className="flex flex-col gap-6">
+        <NdaChat values={values} setValue={setValue} />
+        <NdaForm register={register} errors={errors} />
+      </div>
 
       <div className="flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
         <NdaPreview values={values} bodyBlocks={bodyBlocks} />
@@ -64,7 +69,7 @@ export function NdaCreator({ bodyBlocks }: NdaCreatorProps) {
         <div className="flex flex-col gap-2">
           <button
             type="submit"
-            disabled={isGenerating}
+            disabled={isGenerating || !isValid}
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isGenerating ? "Generating PDF…" : "Download PDF"}
