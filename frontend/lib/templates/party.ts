@@ -20,6 +20,20 @@ export const partySchema = z
 
 export type Party = z.infer<typeof partySchema>;
 
+/** Chat field descriptors for one party's fields, shared by every template whose
+ * signature blocks use the common party shape. */
+export function partyFieldDescriptors(prefix: string, title: string) {
+  return [
+    { path: `${prefix}.companyName`, label: `${title} company/party name` },
+    { path: `${prefix}.signatoryName`, label: `${title} signatory name` },
+    { path: `${prefix}.signatoryTitle`, label: `${title} signatory title` },
+    { path: `${prefix}.noticeEmail`, label: `${title} notice email or postal address` },
+    { path: `${prefix}.noticePostalAddress`, label: `${title} notice postal address` },
+    { path: `${prefix}.signature`, label: `${title} signature (typed full name)` },
+    { path: `${prefix}.date`, label: `${title} signature date` },
+  ];
+}
+
 export const emptyParty: Party = {
   companyName: "",
   signatoryName: "",

@@ -72,7 +72,14 @@ export function parseAgreementBody(markdown: string): DocBlock[] {
 
     const itemMatch = block.match(/^(\d+)\.\s+([\s\S]*)$/);
     if (itemMatch) {
-      return { kind: "item", number: itemMatch[1], inline: parseInline(itemMatch[2]) };
+      const text = itemMatch[2].trim();
+      // A title-only section without markup (e.g. the PSA's "4.\tCommunication and
+      // Escalation.", the one upstream section not wrapped in **) renders bold so it
+      // matches its sibling section headings.
+      if (!text.includes("**") && /^[A-Z][^.]*\.$/.test(text)) {
+        return { kind: "item", number: itemMatch[1], inline: [{ text, bold: true }] };
+      }
+      return { kind: "item", number: itemMatch[1], inline: parseInline(text) };
     }
 
     const subitemMatch = block.match(/^(?:-\s+)?\(([a-z])\)\s+([\s\S]*)$/);
