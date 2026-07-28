@@ -1,3 +1,4 @@
+import { BackendStatus } from "@/components/BackendStatus";
 import { NdaCreator } from "@/components/nda/NdaCreator";
 import { loadNdaBodyMarkdown, parseNdaBody } from "@/lib/nda/markdown";
 
@@ -15,6 +16,9 @@ export default async function Home() {
         </p>
       </header>
       <NdaCreator bodyBlocks={bodyBlocks} />
+      <footer>
+        <BackendStatus />
+      </footer>
     </main>
   );
 }

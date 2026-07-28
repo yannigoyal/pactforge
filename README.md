@@ -8,7 +8,7 @@ pactForge aims to help teams draft, review, and manage business legal agreements
 
 ## Status
 
-This project is in early planning stages. The codebase, tech stack, and setup instructions will be added here as the project takes shape.
+Early stage. The first concrete feature is a Mutual NDA creator (`frontend/`), backed by a FastAPI service (`backend/`) that is currently a v1 foundation (health check only).
 
 ## Planned features
 
@@ -17,9 +17,19 @@ This project is in early planning stages. The codebase, tech stack, and setup in
 - Version history and redlining support
 - Templates for common agreement types
 
+## Repo layout
+
+- `frontend/` — Next.js (App Router) app: NDA creator UI, live preview, PDF generation.
+- `backend/` — FastAPI service. v1 foundation only (health check); future API endpoints and persistence will build on this.
+- `templates/` — canonical legal document templates, source-controlled independently of the app.
+
 ## Getting started
 
-Setup and installation instructions will be added once the initial implementation lands.
+```bash
+make dev
+```
+
+Runs the frontend (`http://localhost:3000`) and backend (`http://localhost:8000`) together. See `frontend/README.md` and `backend/README.md` for running each separately.
 
 ## Contributing
 
