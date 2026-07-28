@@ -18,6 +18,25 @@
         "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
         "file": "bonterms-mutual-nda/LICENSE.md"
       }
+    },
+    {
+      "id": "bonterms-professional-services-agreement",
+      "name": "Bonterms Professional Services Agreement",
+      "version": "1.2",
+      "category": "services",
+      "description": "A balanced Professional Services Agreement for ordering professional services via SOWs, drafted by the Bonterms Standard Agreement Committee.",
+      "path": "bonterms-professional-services-agreement/Professional-Services-Agreement.md",
+      "format": "markdown",
+      "source": {
+        "repository": "https://github.com/Bonterms/Professional-Services-Agreement",
+        "file": "Professional-Services-Agreement V1.2.md",
+        "commit": "a31fc2a697900e32a0105a6eb469cb4def067e31"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "file": "bonterms-professional-services-agreement/LICENSE.md"
+      }
     }
   ]
 }
