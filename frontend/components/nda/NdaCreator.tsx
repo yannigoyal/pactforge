@@ -70,12 +70,12 @@ export function NdaCreator({ bodyBlocks }: NdaCreatorProps) {
           <button
             type="submit"
             disabled={isGenerating || !isValid}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
           >
             {isGenerating ? "Generating PDF…" : "Download PDF"}
           </button>
           {downloadError ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
               {downloadError}
             </p>
           ) : null}

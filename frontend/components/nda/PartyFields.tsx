@@ -13,8 +13,8 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
   const partyErrors = errors[prefix];
 
   return (
-    <fieldset className="flex flex-col gap-4 rounded-lg border border-slate-200 p-4">
-      <legend className="px-1 text-sm font-semibold text-slate-900">{title}</legend>
+    <fieldset className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <legend className="px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</legend>
 
       <FormField
         label="Company / party name"
@@ -83,7 +83,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
         </FormField>
       </div>
 
-      <p className="-mt-2 text-xs text-slate-500">
+      <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
         At least one of notice email or postal address is required.
       </p>
 

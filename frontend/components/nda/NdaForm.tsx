@@ -11,8 +11,8 @@ interface NdaFormProps {
 export function NdaForm({ register, errors }: NdaFormProps) {
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4 rounded-lg border border-slate-200 p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Key terms</h2>
+      <section className="flex flex-col gap-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Key terms</h2>
 
         <FormField label="Purpose" htmlFor="purpose" error={errors.purpose?.message} required>
           <textarea

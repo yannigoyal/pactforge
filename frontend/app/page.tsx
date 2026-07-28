@@ -9,8 +9,8 @@ export default async function Home() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-10">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Mutual NDA Creator</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Mutual NDA Creator</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           Fill in the details below to generate a Bonterms Mutual NDA (Version 1.0), preview it live, and
           download the finished agreement as a PDF.
         </p>
