@@ -1,17 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { UseFormSetValue } from "react-hook-form";
-import type { NdaFormValues } from "@/lib/nda/schema";
-import { getNextField, OPTIONAL_FIELD_PATH } from "@/lib/nda/chatFields";
-import { applyExtractedFields, sendChatMessage, type ChatMessage } from "@/lib/nda/chat";
+import type { FieldValues, UseFormSetValue } from "react-hook-form";
+import type { ZodType } from "zod";
+import { getNextField } from "@/lib/templates/chatFields";
+import {
+  applyExtractedFields,
+  sendChatMessage,
+  type ChatMessage,
+  type FieldDescriptor,
+} from "@/lib/templates/chat";
 
-interface NdaChatProps {
-  values: NdaFormValues;
-  setValue: UseFormSetValue<NdaFormValues>;
+interface DocChatProps<T extends FieldValues> {
+  templateName: string;
+  schema: ZodType<T, T>;
+  fieldDescriptors: FieldDescriptor[];
+  optionalFieldPath?: string;
+  values: T;
+  setValue: UseFormSetValue<T>;
 }
 
-export function NdaChat({ values, setValue }: NdaChatProps) {
+export function DocChat<T extends FieldValues>({
+  templateName,
+  schema,
+  fieldDescriptors,
+  optionalFieldPath,
+  values,
+  setValue,
+}: DocChatProps<T>) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +39,18 @@ export function NdaChat({ values, setValue }: NdaChatProps) {
     setError(null);
     setIsLoading(true);
 
-    const nextField = getNextField(values, hasAskedOptional);
+    const nextField = getNextField(schema, values, fieldDescriptors, optionalFieldPath, hasAskedOptional);
 
     try {
-      const { reply, extractedFields } = await sendChatMessage(history, values, nextField);
+      const { reply, extractedFields } = await sendChatMessage(
+        templateName,
+        fieldDescriptors,
+        history,
+        values,
+        nextField,
+      );
       applyExtractedFields(setValue, extractedFields);
-      if (nextField?.path === OPTIONAL_FIELD_PATH) setHasAskedOptional(true);
+      if (optionalFieldPath && nextField?.path === optionalFieldPath) setHasAskedOptional(true);
       if (reply.trim()) {
         setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       }

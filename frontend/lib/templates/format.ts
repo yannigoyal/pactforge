@@ -1,4 +1,4 @@
-import type { NdaParty } from "./schema";
+import type { Party } from "./party";
 
 export function formatDate(value: string): string {
   if (!value) return "";
@@ -11,13 +11,13 @@ export function formatDate(value: string): string {
   });
 }
 
-export function formatSignatoryNameAndTitle(party: NdaParty): string {
+export function formatSignatoryNameAndTitle(party: Party): string {
   if (party.signatoryName && party.signatoryTitle) {
     return `${party.signatoryName}, ${party.signatoryTitle}`;
   }
   return party.signatoryName || party.signatoryTitle;
 }
 
-export function formatNoticeAddress(party: NdaParty): string {
+export function formatNoticeAddress(party: Party): string {
   return [party.noticeEmail, party.noticePostalAddress].filter(Boolean).join(" / ");
 }

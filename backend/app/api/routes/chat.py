@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
-from app.services.nda_chat import ChatRequest, ChatResponse, call_nda_assistant
+from app.services.doc_chat import ChatRequest, ChatResponse, call_document_assistant
 
 router = APIRouter()
 
 
-@router.post("/chat/nda", response_model=ChatResponse)
-def chat_nda(request: ChatRequest) -> ChatResponse:
-    return call_nda_assistant(request)
+@router.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest) -> ChatResponse:
+    return call_document_assistant(request)

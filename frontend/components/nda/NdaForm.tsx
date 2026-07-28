@@ -1,7 +1,7 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { NdaFormValues } from "@/lib/nda/schema";
-import { FormField, inputClassName } from "./FormField";
-import { PartyFields } from "./PartyFields";
+import { FormField, inputClassName } from "@/components/shared/FormField";
+import { PartyFields } from "@/components/shared/PartyFields";
 
 interface NdaFormProps {
   register: UseFormRegister<NdaFormValues>;

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mutual NDA Creator | pactforge",
-  description: "Fill in, preview, and download a Bonterms Mutual NDA as a PDF.",
+  title: "pactForge",
+  description: "Draft business legal agreements via AI chat or form, preview live, and download as PDF.",
 };
 
 export default function RootLayout({

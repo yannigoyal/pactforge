@@ -1,14 +1,5 @@
-import type { NdaFormValues, NdaParty } from "./schema";
-
-const emptyParty: NdaParty = {
-  companyName: "",
-  signatoryName: "",
-  signatoryTitle: "",
-  noticeEmail: "",
-  noticePostalAddress: "",
-  signature: "",
-  date: "",
-};
+import { emptyParty } from "@/lib/templates/party";
+import type { NdaFormValues } from "./schema";
 
 export const defaultNdaFormValues: NdaFormValues = {
   purpose: "",
