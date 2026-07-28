@@ -1,8 +1,9 @@
 import logging
 from typing import Literal
 
-from anthropic import Anthropic
 from fastapi import HTTPException
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, ValidationError
 
 from app.core.config import settings
@@ -23,6 +24,12 @@ one or more NDA fields, call the {tool_name} tool with those fields filled in. Y
 fill in more than one field at once if the user volunteers multiple facts together \
 (e.g. a company name, signatory name, and title in one sentence). Do not guess values \
 the user didn't provide.
+
+Calling the tool is never a substitute for replying — recording fields and asking the \
+next question happen together in the same turn. After every user message, if "next \
+field" below is not null, your reply must ask about it (after acknowledging what the \
+user just said), even if you also called the tool that turn. Never end a turn having \
+only called the tool with no question asked.
 
 If "next field" below is null, all required fields are filled: congratulate the user, \
 remind them the live preview is up to date, and tell them to review it and click \
@@ -88,41 +95,67 @@ def _build_system_prompt(request: ChatRequest) -> str:
     )
 
 
+def _to_gemini_role(role: Literal["user", "assistant"]) -> str:
+    return "model" if role == "assistant" else "user"
+
+
 def call_nda_assistant(request: ChatRequest) -> ChatResponse:
-    if not settings.anthropic_api_key:
+    if not settings.gemini_api_key:
         raise HTTPException(
             status_code=503,
-            detail="AI chat is not configured. Set ANTHROPIC_API_KEY in backend/.env.",
+            detail="AI chat is not configured. Set GEMINI_API_KEY in backend/.env.",
         )
 
     messages = request.messages or [
         ChatMessage(role="user", content=CONVERSATION_START_SENTINEL)
     ]
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
-    response = client.messages.create(
-        model=settings.anthropic_model,
-        max_tokens=1024,
-        system=_build_system_prompt(request),
-        messages=[{"role": m.role, "content": m.content} for m in messages],
-        tools=[
-            {
-                "name": TOOL_NAME,
-                "description": "Record NDA field values extracted from the conversation.",
-                "input_schema": NdaFieldsUpdate.model_json_schema(),
-            }
-        ],
+    tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name=TOOL_NAME,
+                description="Record NDA field values extracted from the conversation.",
+                parameters_json_schema=NdaFieldsUpdate.model_json_schema(),
+            )
+        ]
     )
 
-    reply_parts: list[str] = []
-    extracted_fields: dict = {}
-    for block in response.content:
-        if block.type == "text":
-            reply_parts.append(block.text)
-        elif block.type == "tool_use" and block.name == TOOL_NAME:
-            try:
-                extracted_fields = NdaFieldsUpdate(**block.input).model_dump(exclude_none=True)
-            except ValidationError:
-                logger.warning("Ignoring malformed tool call input: %r", block.input)
+    config = types.GenerateContentConfig(
+        system_instruction=_build_system_prompt(request),
+        tools=[tool],
+    )
+    contents = [
+        types.Content(role=_to_gemini_role(m.role), parts=[types.Part.from_text(text=m.content)])
+        for m in messages
+    ]
 
-    return ChatResponse(reply="\n".join(reply_parts).strip(), extractedFields=extracted_fields)
+    client = genai.Client(api_key=settings.gemini_api_key)
+    response = client.models.generate_content(model=settings.gemini_model, contents=contents, config=config)
+
+    extracted_fields: dict = {}
+    for function_call in response.function_calls or []:
+        if function_call.name == TOOL_NAME:
+            try:
+                extracted_fields = NdaFieldsUpdate(**function_call.args).model_dump(exclude_none=True)
+            except ValidationError:
+                logger.warning("Ignoring malformed tool call input: %r", function_call.args)
+
+    # Gemini returns only a function-call part (no text) on a turn where it calls the
+    # tool, unlike Anthropic's API which can return both in one turn. Send the tool
+    # result back so the model produces the conversational reply the user actually sees.
+    if response.function_calls:
+        follow_up_contents = contents + [
+            response.candidates[0].content,
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_function_response(name=fc.name, response={"status": "recorded"})
+                    for fc in response.function_calls
+                ],
+            ),
+        ]
+        response = client.models.generate_content(
+            model=settings.gemini_model, contents=follow_up_contents, config=config
+        )
+
+    return ChatResponse(reply=(response.text or "").strip(), extractedFields=extracted_fields)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) that lets a user fill out a Bonterms Mutual NDA either via a form or an AI chat assistant, preview it live, and download it as a PDF, backed by a FastAPI service (`backend/`) that proxies the chat assistant's calls to the Anthropic API. The project is early-stage — the NDA creator is the first concrete feature; more agreement types/features are expected to follow.
+pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) that lets a user fill out a Bonterms Mutual NDA either via a form or an AI chat assistant, preview it live, and download it as a PDF, backed by a FastAPI service (`backend/`) that proxies the chat assistant's calls to the Gemini API. The project is early-stage — the NDA creator is the first concrete feature; more agreement types/features are expected to follow.
 
 ## Repo layout
 
@@ -57,10 +57,10 @@ When adding a new agreement template, follow the same shape: drop the template m
 
 1. `lib/nda/chatFields.ts` — `getNextField()` reuses `ndaFormSchema.safeParse()` (rather than a duplicate validation path) to find the first invalid required field; once the form validates, it nudges once for the optional `additionalTerms` field.
 2. `lib/nda/chat.ts` — `sendChatMessage()` posts the transcript + current field values + next field to the backend; `applyExtractedFields()` maps the response's extracted fields onto `setValue`.
-3. `backend/app/api/routes/chat.py` → `backend/app/services/nda_chat.py` — calls the Anthropic Messages API with a tool (`record_nda_fields`, JSON-schema-derived from a pydantic mirror of the NDA fields) so the assistant can extract structured values from natural-language replies while still returning conversational text.
+3. `backend/app/api/routes/chat.py` → `backend/app/services/nda_chat.py` — calls the Gemini API with a function declaration (`record_nda_fields`, JSON-schema-derived from a pydantic mirror of the NDA fields) so the assistant can extract structured values from natural-language replies while still returning conversational text.
 4. The Download PDF button in `NdaCreator.tsx` is gated on `formState.isValid`, regardless of whether fields were filled via chat or the form.
 
-`ANTHROPIC_API_KEY` must be set in `backend/.env` for the chat to work; without it, `POST /chat/nda` returns a 503 that the chat UI surfaces as a retryable error, while the form remains fully usable.
+`GEMINI_API_KEY` must be set in `backend/.env` for the chat to work; without it, `POST /chat/nda` returns a 503 that the chat UI surfaces as a retryable error, while the form remains fully usable.
 
 ## Conventions
 

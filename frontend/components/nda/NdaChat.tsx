@@ -56,8 +56,7 @@ export function NdaChat({ values, setValue }: NdaChatProps) {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitInput = () => {
     const text = input.trim();
     if (!text || isLoading) return;
     setInput("");
@@ -102,22 +101,29 @@ export function NdaChat({ values, setValue }: NdaChatProps) {
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitInput();
+            }
+          }}
           disabled={isLoading}
           placeholder="Type your answer…"
           className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         <button
-          type="submit"
+          type="button"
+          onClick={submitInput}
           disabled={isLoading || !input.trim()}
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           Send
         </button>
-      </form>
+      </div>
     </div>
   );
 }
