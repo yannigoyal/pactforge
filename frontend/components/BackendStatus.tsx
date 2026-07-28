@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/apiUrl";
 
 type Status = "checking" | "connected" | "offline";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export function BackendStatus() {
   const [status, setStatus] = useState<Status>("checking");

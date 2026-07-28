@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) that lets a user fill out a form, preview a Bonterms Mutual NDA live, and download it as a PDF, plus a FastAPI backend (`backend/`) that is currently a v1 foundation (health check only — not yet wired into the NDA generation flow, which remains entirely within `frontend/`). The project is early-stage — the NDA creator is the first concrete feature; more agreement types/features and real backend endpoints are expected to follow.
+pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) that lets a user fill out a Bonterms Mutual NDA either via a form or an AI chat assistant, preview it live, and download it as a PDF, backed by a FastAPI service (`backend/`) that proxies the chat assistant's calls to the Anthropic API. The project is early-stage — the NDA creator is the first concrete feature; more agreement types/features are expected to follow.
 
 ## Repo layout
 
 - `frontend/` — the Next.js (App Router) application. All NDA creator application code lives here.
-- `backend/` — FastAPI service. v1 foundation only: `GET /health`, CORS configured for `http://localhost:3000`, scalable folder structure (`app/core`, `app/api/routes`) ready for future endpoints/auth/database. See `backend/README.md`.
+- `backend/` — FastAPI service: `GET /health`, `POST /chat/nda` (AI chat assistant, see below), CORS configured for `http://localhost:3000`, scalable folder structure (`app/core`, `app/api/routes`, `app/services`) ready for future endpoints/auth/database. See `backend/README.md`.
 - `templates/` — canonical legal document templates, source-controlled independently of the app.
   - `templates/catalog.json` — metadata index of available templates (id, category, source repo/commit, license).
   - `templates/<template-id>/` — one directory per template, each imported as-is from its upstream source (e.g. `bonterms-mutual-nda/Mutual-NDA.md`) with its own `LICENSE.md` and `README.md`. Do not hand-edit imported template text; if it needs to change, re-import from upstream and update the `source.commit` in `catalog.json`.
@@ -50,6 +50,17 @@ The flow is: **markdown template → parsed blocks → shared by live preview an
 6. `lib/nda/format.ts` — small presentation formatters (date formatting, signatory name+title, notice address) shared between the preview and the PDF document so the two renderings never drift apart. Add new shared formatting here rather than duplicating it in both components.
 
 When adding a new agreement template, follow the same shape: drop the template markdown under `templates/<id>/`, register it in `templates/catalog.json`, and add a corresponding schema/markdown-parser/form/preview/PDF set under `frontend` if it needs its own creator flow.
+
+## Architecture: AI chat assistant
+
+`components/nda/NdaChat.tsx` runs alongside `NdaForm` in `NdaCreator.tsx`, writing into the same `react-hook-form` instance via `setValue`, so chat-collected and form-typed data are one source of truth for the preview/PDF.
+
+1. `lib/nda/chatFields.ts` — `getNextField()` reuses `ndaFormSchema.safeParse()` (rather than a duplicate validation path) to find the first invalid required field; once the form validates, it nudges once for the optional `additionalTerms` field.
+2. `lib/nda/chat.ts` — `sendChatMessage()` posts the transcript + current field values + next field to the backend; `applyExtractedFields()` maps the response's extracted fields onto `setValue`.
+3. `backend/app/api/routes/chat.py` → `backend/app/services/nda_chat.py` — calls the Anthropic Messages API with a tool (`record_nda_fields`, JSON-schema-derived from a pydantic mirror of the NDA fields) so the assistant can extract structured values from natural-language replies while still returning conversational text.
+4. The Download PDF button in `NdaCreator.tsx` is gated on `formState.isValid`, regardless of whether fields were filled via chat or the form.
+
+`ANTHROPIC_API_KEY` must be set in `backend/.env` for the chat to work; without it, `POST /chat/nda` returns a 503 that the chat UI surfaces as a retryable error, while the form remains fully usable.
 
 ## Conventions
 
