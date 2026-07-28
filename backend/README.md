@@ -1,6 +1,6 @@
 # pactForge backend
 
-FastAPI backend for pactForge: a health check, and an AI chat endpoint that proxies to Gemini for the Mutual NDA chat assistant.
+FastAPI backend for pactForge: a health check, and a template-agnostic AI chat endpoint that proxies to Gemini for the document chat assistant.
 
 ## Commands
 
@@ -12,14 +12,14 @@ uv run pytest        # run tests
 
 Health check: `GET http://localhost:8000/health`
 
-Chat endpoint: `POST http://localhost:8000/chat/nda` — requires `GEMINI_API_KEY` set in `.env` (copy `.env.example`); without it, the endpoint returns a 503.
+Chat endpoint: `POST http://localhost:8000/chat` — requires `GEMINI_API_KEY` set in `.env` (copy `.env.example`); without it, the endpoint returns a 503. The request carries the template name and a field-descriptor list, so the endpoint works for any template with no backend changes.
 
 ## Structure
 
 - `app/main.py` — FastAPI app, CORS, router registration
 - `app/core/config.py` — settings (app name, CORS origins, Gemini API key/model)
 - `app/api/routes/` — route modules, one per resource
-- `app/services/` — business logic called by routes (e.g. `nda_chat.py` builds the system prompt/tool schema and calls the Gemini API)
+- `app/services/` — business logic called by routes (e.g. `doc_chat.py` builds the system prompt/tool schema from the request's field descriptors and calls the Gemini API)
 - `tests/` — pytest tests
 
 ## Future extension points

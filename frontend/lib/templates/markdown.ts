@@ -8,9 +8,10 @@ export interface InlineSegment {
   href?: string;
 }
 
-export type NdaBlock =
+export type DocBlock =
   | { kind: "heading"; inline: InlineSegment[] }
   | { kind: "item"; number: string; inline: InlineSegment[] }
+  | { kind: "subsection"; number: string; inline: InlineSegment[] }
   | { kind: "subitem"; marker: string; inline: InlineSegment[] }
   | { kind: "footer"; lines: InlineSegment[][] }
   | { kind: "paragraph"; inline: InlineSegment[] };
@@ -38,16 +39,35 @@ function parseInline(raw: string): InlineSegment[] {
     });
 }
 
-/** Parses the fixed markdown structure of the Bonterms Mutual NDA body into renderable blocks. */
-export function parseNdaBody(markdown: string): NdaBlock[] {
+/**
+ * Parses the fixed markdown structure shared by the Bonterms agreements into renderable
+ * blocks. Handles both shapes in the catalog: the Mutual NDA (`1. text`, `- (a) text`,
+ * trailing footer) and the PSA (`**1.\tTitle**. text`, `2.1.\ttext`, bare `(a)\ttext`).
+ * This parser is tailored to these templates, not general-purpose markdown.
+ */
+export function parseAgreementBody(markdown: string): DocBlock[] {
   const blocks = markdown
     .split(/\n\s*\n/)
     .map((block) => block.trim())
     .filter((block) => block.length > 0);
 
-  return blocks.map((block): NdaBlock => {
+  return blocks.map((block): DocBlock => {
     if (block.startsWith("# ")) {
       return { kind: "heading", inline: parseInline(block.slice(2)) };
+    }
+
+    const boldItemMatch = block.match(/^\*\*(\d+)\.\s+([^*]+)\*\*\.?\s*([\s\S]*)$/);
+    if (boldItemMatch) {
+      const inline: InlineSegment[] = [{ text: `${boldItemMatch[2].trim()}.`, bold: true }];
+      if (boldItemMatch[3].trim()) {
+        inline.push({ text: " " }, ...parseInline(boldItemMatch[3]));
+      }
+      return { kind: "item", number: boldItemMatch[1], inline };
+    }
+
+    const subsectionMatch = block.match(/^(\d+\.\d+)\.\s+([\s\S]*)$/);
+    if (subsectionMatch) {
+      return { kind: "subsection", number: subsectionMatch[1], inline: parseInline(subsectionMatch[2]) };
     }
 
     const itemMatch = block.match(/^(\d+)\.\s+([\s\S]*)$/);
@@ -55,7 +75,7 @@ export function parseNdaBody(markdown: string): NdaBlock[] {
       return { kind: "item", number: itemMatch[1], inline: parseInline(itemMatch[2]) };
     }
 
-    const subitemMatch = block.match(/^-\s+\(([a-z])\)\s+([\s\S]*)$/);
+    const subitemMatch = block.match(/^(?:-\s+)?\(([a-z])\)\s+([\s\S]*)$/);
     if (subitemMatch) {
       return {
         kind: "subitem",
@@ -64,7 +84,7 @@ export function parseNdaBody(markdown: string): NdaBlock[] {
       };
     }
 
-    if (block.startsWith("Bonterms Mutual NDA (Version")) {
+    if (/^Bonterms .+\(Version/.test(block)) {
       const lines = block
         .split(/<br\s*\/?>/i)
         .map((line) => line.trim())
@@ -77,14 +97,8 @@ export function parseNdaBody(markdown: string): NdaBlock[] {
   });
 }
 
-/** Reads the canonical Mutual NDA markdown from templates/, the single source of truth shared with the catalog. */
-export async function loadNdaBodyMarkdown(): Promise<string> {
-  const filePath = path.join(
-    process.cwd(),
-    "..",
-    "templates",
-    "bonterms-mutual-nda",
-    "Mutual-NDA.md",
-  );
+/** Reads a template's canonical markdown from templates/, the single source of truth shared with the catalog. */
+export async function loadTemplateMarkdown(catalogPath: string): Promise<string> {
+  const filePath = path.join(process.cwd(), "..", "templates", catalogPath);
   return readFile(filePath, "utf-8");
 }

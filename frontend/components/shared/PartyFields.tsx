@@ -1,16 +1,22 @@
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
-import type { NdaFormValues } from "@/lib/nda/schema";
+import type { FieldErrors, FieldPath, FieldValues, UseFormRegister } from "react-hook-form";
+import type { Party } from "@/lib/templates/party";
 import { FormField, inputClassName } from "./FormField";
 
-interface PartyFieldsProps {
+interface PartyFieldsProps<T extends FieldValues> {
   title: string;
-  prefix: "partyA" | "partyB";
-  register: UseFormRegister<NdaFormValues>;
-  errors: FieldErrors<NdaFormValues>;
+  prefix: string;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
 }
 
-export function PartyFields({ title, prefix, register, errors }: PartyFieldsProps) {
-  const partyErrors = errors[prefix];
+export function PartyFields<T extends FieldValues>({
+  title,
+  prefix,
+  register,
+  errors,
+}: PartyFieldsProps<T>) {
+  const partyErrors = (errors as Record<string, FieldErrors<Party> | undefined>)[prefix];
+  const field = (name: keyof Party) => register(`${prefix}.${name}` as FieldPath<T>);
 
   return (
     <fieldset className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -22,11 +28,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
         error={partyErrors?.companyName?.message}
         required
       >
-        <input
-          id={`${prefix}.companyName`}
-          className={inputClassName}
-          {...register(`${prefix}.companyName`)}
-        />
+        <input id={`${prefix}.companyName`} className={inputClassName} {...field("companyName")} />
       </FormField>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -36,11 +38,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
           error={partyErrors?.signatoryName?.message}
           required
         >
-          <input
-            id={`${prefix}.signatoryName`}
-            className={inputClassName}
-            {...register(`${prefix}.signatoryName`)}
-          />
+          <input id={`${prefix}.signatoryName`} className={inputClassName} {...field("signatoryName")} />
         </FormField>
 
         <FormField
@@ -49,11 +47,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
           error={partyErrors?.signatoryTitle?.message}
           required
         >
-          <input
-            id={`${prefix}.signatoryTitle`}
-            className={inputClassName}
-            {...register(`${prefix}.signatoryTitle`)}
-          />
+          <input id={`${prefix}.signatoryTitle`} className={inputClassName} {...field("signatoryTitle")} />
         </FormField>
       </div>
 
@@ -63,22 +57,14 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
           htmlFor={`${prefix}.noticeEmail`}
           error={partyErrors?.noticeEmail?.message}
         >
-          <input
-            id={`${prefix}.noticeEmail`}
-            type="email"
-            className={inputClassName}
-            {...register(`${prefix}.noticeEmail`)}
-          />
+          <input id={`${prefix}.noticeEmail`} type="email" className={inputClassName} {...field("noticeEmail")} />
         </FormField>
 
-        <FormField
-          label="Notice postal address"
-          htmlFor={`${prefix}.noticePostalAddress`}
-        >
+        <FormField label="Notice postal address" htmlFor={`${prefix}.noticePostalAddress`}>
           <input
             id={`${prefix}.noticePostalAddress`}
             className={inputClassName}
-            {...register(`${prefix}.noticePostalAddress`)}
+            {...field("noticePostalAddress")}
           />
         </FormField>
       </div>
@@ -97,7 +83,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
           <input
             id={`${prefix}.signature`}
             className={`${inputClassName} font-serif italic`}
-            {...register(`${prefix}.signature`)}
+            {...field("signature")}
           />
         </FormField>
 
@@ -107,12 +93,7 @@ export function PartyFields({ title, prefix, register, errors }: PartyFieldsProp
           error={partyErrors?.date?.message}
           required
         >
-          <input
-            id={`${prefix}.date`}
-            type="date"
-            className={inputClassName}
-            {...register(`${prefix}.date`)}
-          />
+          <input id={`${prefix}.date`} type="date" className={inputClassName} {...field("date")} />
         </FormField>
       </div>
     </fieldset>

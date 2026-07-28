@@ -4,15 +4,15 @@ from typing import Literal
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-TOOL_NAME = "record_nda_fields"
+TOOL_NAME = "record_document_fields"
 
-SYSTEM_PROMPT = """You are an assistant helping a user fill out a Bonterms Mutual NDA \
+SYSTEM_PROMPT = """You are an assistant helping a user fill out a {template_name} \
 through natural conversation, instead of a long form.
 
 Ask about ONE thing at a time — focus on the "next field" given to you below. Keep \
@@ -20,10 +20,11 @@ replies short, warm, and conversational (one or two sentences). Acknowledge what
 user just told you before asking the next question.
 
 Whenever the user's latest message contains information you can confidently map to \
-one or more NDA fields, call the {tool_name} tool with those fields filled in. You may \
-fill in more than one field at once if the user volunteers multiple facts together \
-(e.g. a company name, signatory name, and title in one sentence). Do not guess values \
-the user didn't provide.
+one or more document fields, call the {tool_name} tool with those fields filled in. \
+You may fill in more than one field at once if the user volunteers multiple facts \
+together (e.g. a company name, signatory name, and title in one sentence). Do not \
+guess values the user didn't provide. For fields that only allow specific values, \
+only record one of the allowed values.
 
 Calling the tool is never a substitute for replying — recording fields and asking the \
 next question happen together in the same turn. After every user message, if "next \
@@ -50,12 +51,20 @@ class ChatMessage(BaseModel):
     content: str
 
 
+class FieldDescriptor(BaseModel):
+    path: str
+    label: str
+    options: list[str] | None = None
+
+
 class NextField(BaseModel):
     path: str
     label: str
 
 
 class ChatRequest(BaseModel):
+    templateName: str
+    fieldDescriptors: list[FieldDescriptor]
     messages: list[ChatMessage]
     fields: dict = {}
     nextField: NextField | None = None
@@ -66,32 +75,53 @@ class ChatResponse(BaseModel):
     extractedFields: dict = {}
 
 
-class PartyFieldsUpdate(BaseModel):
-    companyName: str | None = None
-    signatoryName: str | None = None
-    signatoryTitle: str | None = None
-    noticeEmail: str | None = None
-    noticePostalAddress: str | None = None
-    signature: str | None = None
-    date: str | None = None
+def build_extraction_schema(descriptors: list[FieldDescriptor]) -> dict:
+    """Builds the tool's JSON schema from a template's field descriptors, turning dotted
+    paths (e.g. partyA.companyName) into nested object properties."""
+    root: dict = {"type": "object", "properties": {}}
+    for descriptor in descriptors:
+        parts = descriptor.path.split(".")
+        node = root
+        for part in parts[:-1]:
+            node = node["properties"].setdefault(part, {"type": "object", "properties": {}})
+        leaf: dict = {"type": "string", "description": descriptor.label}
+        if descriptor.options:
+            leaf["enum"] = descriptor.options
+        node["properties"][parts[-1]] = leaf
+    return root
 
 
-class NdaFieldsUpdate(BaseModel):
-    purpose: str | None = None
-    effectiveDate: str | None = None
-    termOfNda: str | None = None
-    confidentialityPeriod: str | None = None
-    governingLaw: str | None = None
-    courts: str | None = None
-    additionalTerms: str | None = None
-    partyA: PartyFieldsUpdate | None = None
-    partyB: PartyFieldsUpdate | None = None
+def filter_extracted_fields(args: dict, descriptors: list[FieldDescriptor]) -> dict:
+    """Keeps only string values at paths declared by the template's descriptors,
+    dropping anything malformed or hallucinated by the model."""
+    allowed_paths = {d.path for d in descriptors}
+
+    def walk(node: dict, prefix: str) -> dict:
+        result: dict = {}
+        for key, value in node.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, str):
+                if path in allowed_paths:
+                    result[key] = value
+            elif isinstance(value, dict):
+                nested = walk(value, path)
+                if nested:
+                    result[key] = nested
+        return result
+
+    filtered = walk(args, "")
+    if filtered != args:
+        logger.warning("Dropped unexpected tool call content: %r", args)
+    return filtered
 
 
 def _build_system_prompt(request: ChatRequest) -> str:
     next_field = f"{request.nextField.label} ({request.nextField.path})" if request.nextField else "null"
     return SYSTEM_PROMPT.format(
-        tool_name=TOOL_NAME, known_fields=request.fields, next_field=next_field
+        template_name=request.templateName,
+        tool_name=TOOL_NAME,
+        known_fields=request.fields,
+        next_field=next_field,
     )
 
 
@@ -99,7 +129,7 @@ def _to_gemini_role(role: Literal["user", "assistant"]) -> str:
     return "model" if role == "assistant" else "user"
 
 
-def call_nda_assistant(request: ChatRequest) -> ChatResponse:
+def call_document_assistant(request: ChatRequest) -> ChatResponse:
     if not settings.gemini_api_key:
         raise HTTPException(
             status_code=503,
@@ -114,8 +144,8 @@ def call_nda_assistant(request: ChatRequest) -> ChatResponse:
         function_declarations=[
             types.FunctionDeclaration(
                 name=TOOL_NAME,
-                description="Record NDA field values extracted from the conversation.",
-                parameters_json_schema=NdaFieldsUpdate.model_json_schema(),
+                description="Record document field values extracted from the conversation.",
+                parameters_json_schema=build_extraction_schema(request.fieldDescriptors),
             )
         ]
     )
@@ -135,14 +165,11 @@ def call_nda_assistant(request: ChatRequest) -> ChatResponse:
     extracted_fields: dict = {}
     for function_call in response.function_calls or []:
         if function_call.name == TOOL_NAME:
-            try:
-                extracted_fields = NdaFieldsUpdate(**function_call.args).model_dump(exclude_none=True)
-            except ValidationError:
-                logger.warning("Ignoring malformed tool call input: %r", function_call.args)
+            extracted_fields = filter_extracted_fields(function_call.args or {}, request.fieldDescriptors)
 
     # Gemini returns only a function-call part (no text) on a turn where it calls the
-    # tool, unlike Anthropic's API which can return both in one turn. Send the tool
-    # result back so the model produces the conversational reply the user actually sees.
+    # tool, unlike APIs that can return both in one turn. Send the tool result back so
+    # the model produces the conversational reply the user actually sees.
     if response.function_calls:
         follow_up_contents = contents + [
             response.candidates[0].content,
