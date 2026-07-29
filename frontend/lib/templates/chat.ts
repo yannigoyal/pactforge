@@ -1,5 +1,5 @@
 import type { FieldPath, FieldValues, UseFormSetValue } from "react-hook-form";
-import { API_URL } from "@/lib/apiUrl";
+import { apiRequest } from "@/lib/api";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -24,25 +24,21 @@ interface ChatResponse {
   extractedFields: Record<string, unknown>;
 }
 
-export async function sendChatMessage(
+export function sendChatMessage(
   templateName: string,
   fieldDescriptors: FieldDescriptor[],
   messages: ChatMessage[],
   fields: FieldValues,
   nextField: NextField | null,
 ): Promise<ChatResponse> {
-  const res = await fetch(`${API_URL}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ templateName, fieldDescriptors, messages, fields, nextField }),
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.detail ?? "The AI assistant is unavailable right now.");
-  }
-
-  return res.json();
+  return apiRequest(
+    "/chat",
+    {
+      method: "POST",
+      body: JSON.stringify({ templateName, fieldDescriptors, messages, fields, nextField }),
+    },
+    "The AI assistant is unavailable right now.",
+  );
 }
 
 /** Walks the (possibly nested) extracted-fields object and writes each leaf string

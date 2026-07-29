@@ -24,10 +24,19 @@ async function createNdaPdfBlob(values: NdaFormValues, bodyBlocks: DocBlock[]): 
   return pdf(<NdaPdfDocument values={values} bodyBlocks={bodyBlocks} />).toBlob();
 }
 
+function ndaDocumentTitle(values: NdaFormValues): string {
+  const parties = [values.partyA.companyName, values.partyB.companyName]
+    .filter(Boolean)
+    .join(" & ");
+  return parties ? `Mutual NDA — ${parties}` : "Mutual NDA";
+}
+
 export function NdaCreator({ bodyBlocks }: NdaCreatorProps) {
   return (
     <DocumentCreator
+      templateId="bonterms-mutual-nda"
       templateName={NDA_TEMPLATE_NAME}
+      documentTitle={ndaDocumentTitle}
       schema={ndaFormSchema}
       defaultValues={defaultNdaFormValues}
       fieldDescriptors={ndaFieldDescriptors}

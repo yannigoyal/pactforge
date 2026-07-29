@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    database_url: str = "sqlite:///./pactforge.db"
+    jwt_secret: str = "dev-only-secret-change-me-in-production-envs"
 
 
 settings = Settings()

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_URL } from "@/lib/apiUrl";
+import { API_URL } from "@/lib/api";
 
 type Status = "checking" | "connected" | "offline";
 

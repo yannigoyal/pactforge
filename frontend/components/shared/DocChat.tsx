@@ -125,6 +125,7 @@ export function DocChat<T extends FieldValues>({
 
       <div className="flex gap-2">
         <input
+          autoFocus
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

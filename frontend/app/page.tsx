@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BackendStatus } from "@/components/BackendStatus";
 import { loadCatalog } from "@/lib/templates/catalog";
 
 export default async function Home() {
@@ -35,10 +34,6 @@ export default async function Home() {
           </Link>
         ))}
       </div>
-
-      <footer>
-        <BackendStatus />
-      </footer>
     </main>
   );
 }

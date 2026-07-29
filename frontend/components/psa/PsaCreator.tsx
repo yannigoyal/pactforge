@@ -24,10 +24,19 @@ async function createPsaPdfBlob(values: PsaFormValues, bodyBlocks: DocBlock[]): 
   return pdf(<PsaPdfDocument values={values} bodyBlocks={bodyBlocks} />).toBlob();
 }
 
+function psaDocumentTitle(values: PsaFormValues): string {
+  const parties = [values.customer.companyName, values.provider.companyName]
+    .filter(Boolean)
+    .join(" & ");
+  return parties ? `Professional Services Agreement — ${parties}` : "Professional Services Agreement";
+}
+
 export function PsaCreator({ bodyBlocks }: PsaCreatorProps) {
   return (
     <DocumentCreator
+      templateId="bonterms-professional-services-agreement"
       templateName={PSA_TEMPLATE_NAME}
+      documentTitle={psaDocumentTitle}
       schema={psaFormSchema}
       defaultValues={defaultPsaFormValues}
       fieldDescriptors={psaFieldDescriptors}
