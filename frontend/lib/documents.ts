@@ -1,4 +1,4 @@
-import { API_URL } from "@/lib/apiUrl";
+import { apiRequest } from "@/lib/api";
 
 export interface DocumentSummary {
   id: number;
@@ -11,36 +11,23 @@ export interface SavedDocument extends DocumentSummary {
   values: Record<string, unknown>;
 }
 
-async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...init?.headers,
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const detail = body?.detail;
-    throw new Error(typeof detail === "string" ? detail : "Request failed. Please try again.");
-  }
-  return res.status === 204 ? (undefined as T) : res.json();
+function authed(token: string, init?: RequestInit): RequestInit {
+  return { ...init, headers: { Authorization: `Bearer ${token}`, ...init?.headers } };
 }
 
 export function listDocuments(token: string): Promise<DocumentSummary[]> {
-  return request("/documents", token);
+  return apiRequest("/documents", authed(token));
 }
 
 export function getDocument(token: string, id: number): Promise<SavedDocument> {
-  return request(`/documents/${id}`, token);
+  return apiRequest(`/documents/${id}`, authed(token));
 }
 
 export function createDocument(
   token: string,
   doc: { templateId: string; title: string; values: unknown },
 ): Promise<SavedDocument> {
-  return request("/documents", token, { method: "POST", body: JSON.stringify(doc) });
+  return apiRequest("/documents", authed(token, { method: "POST", body: JSON.stringify(doc) }));
 }
 
 export function updateDocument(
@@ -48,9 +35,9 @@ export function updateDocument(
   id: number,
   doc: { templateId: string; title: string; values: unknown },
 ): Promise<SavedDocument> {
-  return request(`/documents/${id}`, token, { method: "PUT", body: JSON.stringify(doc) });
+  return apiRequest(`/documents/${id}`, authed(token, { method: "PUT", body: JSON.stringify(doc) }));
 }
 
 export function deleteDocument(token: string, id: number): Promise<void> {
-  return request(`/documents/${id}`, token, { method: "DELETE" });
+  return apiRequest(`/documents/${id}`, authed(token, { method: "DELETE" }));
 }

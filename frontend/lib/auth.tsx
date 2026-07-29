@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { API_URL } from "@/lib/apiUrl";
+import { apiRequest } from "@/lib/api";
 
 interface AuthState {
   email: string | null;
@@ -17,18 +17,11 @@ const STORAGE_KEY = "pactforge.session";
 
 const AuthContext = createContext<AuthState | null>(null);
 
-async function requestToken(path: string, email: string, password: string) {
-  const res = await fetch(`${API_URL}${path}`, {
+function requestToken(path: string, email: string, password: string) {
+  return apiRequest<{ token: string; email: string }>(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  const body = await res.json().catch(() => null);
-  if (!res.ok) {
-    const detail = body?.detail;
-    throw new Error(typeof detail === "string" ? detail : "Something went wrong. Please try again.");
-  }
-  return body as { token: string; email: string };
 }
 
 type Session = { token: string; email: string };

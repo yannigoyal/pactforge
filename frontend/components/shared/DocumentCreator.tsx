@@ -37,6 +37,28 @@ interface DocumentCreatorProps<T extends FieldValues> {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+/** Fills any fields missing from a stored document with the template's defaults, so
+ * documents saved under an older schema shape can never leave the form with undefined
+ * nested objects (which would crash the preview). */
+function mergeWithDefaults(
+  defaults: Record<string, unknown>,
+  stored: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...defaults };
+  for (const [key, value] of Object.entries(stored)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const base = result[key];
+      result[key] = mergeWithDefaults(
+        base && typeof base === "object" ? (base as Record<string, unknown>) : {},
+        value as Record<string, unknown>,
+      );
+    } else if (value != null) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export function DocumentCreator<T extends FieldValues>({
   templateId,
   templateName,
@@ -79,6 +101,13 @@ export function DocumentCreator<T extends FieldValues>({
 
   const values = watch();
 
+  // Clear the "Saved" confirmation as soon as the user edits again.
+  useEffect(() => {
+    if (saveState !== "saved") return;
+    const subscription = watch(() => setSaveState("idle"));
+    return () => subscription.unsubscribe();
+  }, [saveState, watch]);
+
   // Reopen a saved document: load its values into the form once auth is ready.
   useEffect(() => {
     if (!requestedDocId || isAuthLoading) return;
@@ -94,7 +123,9 @@ export function DocumentCreator<T extends FieldValues>({
           setSaveError("This saved document belongs to a different template.");
           return;
         }
-        reset(doc.values as DefaultValues<T>, { keepDefaultValues: true });
+        reset(mergeWithDefaults(defaultValues, doc.values) as DefaultValues<T>, {
+          keepDefaultValues: true,
+        });
         setSavedDocId(doc.id);
       })
       .catch((err) => {
