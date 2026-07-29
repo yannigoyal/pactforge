@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) where a user picks a template (Bonterms Mutual NDA or Bonterms Professional Services Agreement), fills it out either via a form or an AI chat assistant, previews it live, and downloads it as a PDF, backed by a FastAPI service (`backend/`) that proxies the chat assistant's calls to the Gemini API. The project is early-stage; more agreement types/features are expected to follow.
+pactForge is an AI-powered workspace for drafting and managing business legal agreements. The current implementation is a Next.js app (`frontend/`) where a user picks a template (Bonterms Mutual NDA or Bonterms Professional Services Agreement), fills it out either via a form or an AI chat assistant, previews it live, and downloads it as a PDF — optionally signing in (email/password) to save documents to their account and reopen them later — backed by a FastAPI service (`backend/`) that proxies the chat assistant's calls to the Gemini API and persists users/documents in SQLite. More agreement types/features are expected to follow.
 
 ## Repo layout
 
 - `frontend/` — the Next.js (App Router) application. All creator application code lives here.
-- `backend/` — FastAPI service: `GET /health`, `POST /chat` (template-agnostic AI chat assistant, see below), CORS configured for `http://localhost:3000`, scalable folder structure (`app/core`, `app/api/routes`, `app/services`) ready for future endpoints/auth/database. See `backend/README.md`.
+- `backend/` — FastAPI service: `GET /health`, `POST /chat` (template-agnostic AI chat assistant, see below), `POST /auth/register|login` + `GET /auth/me` (JWT auth), `/documents` CRUD (per-user, auth-required), CORS configured for `http://localhost:3000`. Structure: `app/core` (config, auth), `app/api/routes`, `app/services`, `app/db` (SQLAlchemy/SQLite session), `app/models`. See `backend/README.md`.
 - `templates/` — canonical legal document templates, source-controlled independently of the app.
   - `templates/catalog.json` — metadata index of available templates (id, category, source repo/commit, license).
   - `templates/<template-id>/` — one directory per template, each imported as-is from its upstream source (e.g. `bonterms-mutual-nda/Mutual-NDA.md`) with its own `LICENSE.md` and `README.md`. Do not hand-edit imported template text; if it needs to change, re-import from upstream and update the `source.commit` in `catalog.json`.
@@ -61,6 +61,18 @@ When adding a new agreement template: drop the template markdown under `template
 4. `backend/app/api/routes/chat.py` → `backend/app/services/doc_chat.py` — template-agnostic: builds a Gemini function declaration (`record_document_fields`) dynamically from the request's field descriptors, and filters extracted values against the declared descriptor paths so hallucinated fields are dropped.
 
 `GEMINI_API_KEY` must be set in `backend/.env` for the chat to work; without it, `POST /chat` returns a 503 that the chat UI surfaces as a retryable error, while the form remains fully usable.
+
+## Architecture: auth and saved documents
+
+Authentication is email/password + JWT (`Authorization: Bearer`), entirely optional — the creator and PDF download work signed out; saving is the only auth-gated action.
+
+1. `backend/app/core/auth.py` — bcrypt hashing, JWT create/validate (`JWT_SECRET` in `.env`, HS256, 7-day expiry), and the `get_current_user` dependency used by all `/documents` routes.
+2. `backend/app/db/session.py` + `backend/app/models/` — SQLAlchemy engine/session for SQLite (`DATABASE_URL`, default `backend/pactforge.db`, gitignored; tables auto-created at startup via lifespan) and the `User`/`Document` models. Documents store the template id, an auto-generated title, and the raw form values as JSON — PDFs are regenerated on demand, never stored.
+3. `frontend/lib/auth.tsx` — `AuthProvider`/`useAuth` context; the session (token + email) lives in localStorage. `frontend/lib/documents.ts` — typed authed fetch helpers for the documents CRUD.
+4. `components/shared/AppHeader.tsx` (rendered in the root layout inside `AuthProvider`) — nav + sign-in/out state + backend status. `/signin` handles both sign-in and registration; `/documents` lists the user's saved documents.
+5. Saving/reopening lives in `components/shared/DocumentCreator.tsx`: an explicit Save button (POST first save, PUT thereafter; title via the per-template `documentTitle` callback), and a `?doc=<id>` query param that loads a saved document's values into the form via `reset()` once auth is ready. The creator is wrapped in `<Suspense>` in `app/create/[templateId]/page.tsx` because `useSearchParams` requires it on statically prerendered routes.
+
+Backend tests cover the auth flow and per-user document isolation using an in-memory SQLite override (`tests/conftest.py`) — tests never touch the real database file.
 
 ## Conventions
 

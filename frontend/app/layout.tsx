@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/lib/auth";
+import { AppHeader } from "@/components/shared/AppHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,7 +33,10 @@ export default function RootLayout({
         className="min-h-full flex flex-col bg-background text-foreground"
         suppressHydrationWarning
       >
-        {children}
+        <AuthProvider>
+          <AppHeader />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

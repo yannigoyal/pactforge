@@ -8,7 +8,7 @@ pactForge aims to help teams draft, review, and manage business legal agreements
 
 ## Status
 
-Early stage. The app (`frontend/`) offers multiple legal templates — currently the Bonterms Mutual NDA and Bonterms Professional Services Agreement — each fillable via an AI chat assistant or a form, with live preview and PDF download, backed by a FastAPI service (`backend/`) that proxies the chat assistant's AI calls.
+Early stage. The app (`frontend/`) offers multiple legal templates — currently the Bonterms Mutual NDA and Bonterms Professional Services Agreement — each fillable via an AI chat assistant or a form, with live preview and PDF download. Users can optionally create an account (email/password) to save documents and reopen them later. Backed by a FastAPI service (`backend/`) that proxies the chat assistant's AI calls and persists users/documents in SQLite.
 
 ## Planned features
 
